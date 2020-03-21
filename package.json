@@ -1,0 +1,25 @@
+{
+  "name": "r-drag-list",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mohammadFeiz/r-drag-list.git"
+  },
+  "keywords": [],
+  "dependencies": {
+    "jquery": "^3.4.1",
+    "react": "^16.12.0",
+    "react-dom": "^16.12.0"
+  },
+  "author": "mohamad sharif feiz <feiz.ms@gmail.com> (http://www.frontend-master.ir)",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/mohammadFeiz/r-drag-list/issues"
+  },
+  "homepage": "https://github.com/mohammadFeiz/r-drag-list#readme"
+}
