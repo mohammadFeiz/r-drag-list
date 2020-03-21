@@ -55,30 +55,45 @@ var RList = /*#__PURE__*/function (_Component) {
 
     _this = _super.call(this, props);
     var _this$props = _this.props,
+        get = _this$props.get,
         height = _this$props.height,
         size = _this$props.size,
-        value = _this$props.value;
-    _this.itemHeight = height / size;
-    _this.offset = Math.floor(size / 2);
+        value = _this$props.value,
+        length = _this$props.length;
 
     _this.getItems();
 
+    _this.dom = (0, _react.createRef)();
     _this.state = {
       top: _this.getTop(_this.getTopByValue(value)),
-      getItems: _this.getItems.bind(_assertThisInitialized(_this))
+      getItems: _this.getItems.bind(_assertThisInitialized(_this)),
+      length: length,
+      get: get.toString()
     };
     _this.time = 0;
     _this.date = new Date();
-    _this.touch = _this.isMobile();
+    _this.touch = 'ontouchstart' in document.documentElement;
+
+    if (_this.touch) {
+      _this.getClient = function (e) {
+        return {
+          x: e.changedTouches[0].clientX,
+          y: e.changedTouches[0].clientY
+        };
+      };
+    } else {
+      _this.getClient = function (e) {
+        return {
+          x: e.clientX,
+          y: e.clientY
+        };
+      };
+    }
+
     return _this;
   }
 
   _createClass(RList, [{
-    key: "isMobile",
-    value: function isMobile() {
-      return 'ontouchstart' in document.documentElement;
-    }
-  }, {
     key: "eventHandler",
     value: function eventHandler(selector, event, action) {
       var type = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : 'bind';
@@ -87,25 +102,13 @@ var RList = /*#__PURE__*/function (_Component) {
         mousemove: "touchmove",
         mouseup: "touchend"
       };
-      event = this.isMobile() ? me[event] : event;
+      event = this.touch ? me[event] : event;
       var element = typeof selector === "string" ? selector === "window" ? (0, _jquery.default)(window) : (0, _jquery.default)(selector) : selector;
       element.unbind(event, action);
 
       if (type === 'bind') {
         element.bind(event, action);
       }
-    }
-  }, {
-    key: "getClient",
-    value: function getClient(e) {
-      var mobile = this.isMobile();
-      return mobile ? {
-        x: e.changedTouches[0].clientX,
-        y: e.changedTouches[0].clientY
-      } : {
-        x: e.clientX,
-        y: e.clientY
-      };
     }
   }, {
     key: "mouseDown",
@@ -136,7 +139,7 @@ var RList = /*#__PURE__*/function (_Component) {
         this.y = y;
       }
 
-      this.setTop(this.so.top - (this.so.y - this.getClient(e).y), 1, dragChange);
+      this.setTop(this.so.top - (this.so.y - this.getClient(e).y), dragChange);
     }
   }, {
     key: "accel",
@@ -146,46 +149,44 @@ var RList = /*#__PURE__*/function (_Component) {
       var top = this.state.top;
       var dragChange = this.props.dragChange;
       clearInterval(this.interval);
-      this.speed = this.deltaPX / this.deltaT * 20 * 0.4;
+      this.speed = this.deltaT ? this.deltaPX / this.deltaT * 20 * 0.4 : false;
 
-      if (Math.abs(this.speed) < 1) {
-        this.setTop(Math.round(top / this.itemHeight) * this.itemHeight, 0, !dragChange);
+      if (!this.speed || Math.abs(this.speed) < 1) {
+        this.setTop(Math.round(top / this.itemHeight) * this.itemHeight, !dragChange);
         return;
       }
 
-      var minTop = this.getMinTop(),
-          maxTop = this.getMaxTop();
       this.interval = setInterval(function () {
         var top = _this2.state.top;
         top += _this2.speed;
         _this2.speed *= 0.98; //console.log(this.speed)
 
         if (Math.abs(_this2.speed) < 0.7) {
-          _this2.setTop(Math.round(top / _this2.itemHeight) * _this2.itemHeight, 0, !dragChange);
+          _this2.setTop(Math.round(top / _this2.itemHeight) * _this2.itemHeight, !dragChange);
 
           clearInterval(_this2.interval);
           return;
         }
 
-        if (top < minTop) {
-          top = minTop;
+        if (top < _this2.minTop) {
+          top = _this2.minTop;
 
-          _this2.setTop(top, 0, !dragChange);
-
-          clearInterval(_this2.interval);
-          return;
-        }
-
-        if (top > maxTop) {
-          top = maxTop;
-
-          _this2.setTop(top, 0, !dragChange);
+          _this2.setTop(top, !dragChange);
 
           clearInterval(_this2.interval);
           return;
         }
 
-        _this2.setTop(top, 0, dragChange);
+        if (top > _this2.maxTop) {
+          top = _this2.maxTop;
+
+          _this2.setTop(top, !dragChange);
+
+          clearInterval(_this2.interval);
+          return;
+        }
+
+        _this2.setTop(top, dragChange);
       }, 20);
     }
   }, {
@@ -201,7 +202,7 @@ var RList = /*#__PURE__*/function (_Component) {
         this.accel();
       } else {
         var top = this.state.top;
-        this.setTop(Math.round(top / this.itemHeight) * this.itemHeight, 0, !dragChange);
+        this.setTop(Math.round(top / this.itemHeight) * this.itemHeight, !dragChange);
       }
     }
   }, {
@@ -220,32 +221,34 @@ var RList = /*#__PURE__*/function (_Component) {
   }, {
     key: "getTop",
     value: function getTop(top) {
-      var delta = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 0;
-      var minTop = this.getMinTop(delta),
-          maxTop = this.getMaxTop(delta);
-
-      if (top < minTop) {
-        top = minTop;
-      } else if (top > maxTop) {
-        top = maxTop;
+      if (top < this.minTop) {
+        top = this.minTop;
+      } else if (top > this.maxTop) {
+        top = this.maxTop;
       }
 
       return top;
     }
   }, {
     key: "setTop",
-    value: function setTop(top, delta, callOnchange) {
+    value: function setTop(top, callOnchange) {
       var _this$props4 = this.props,
           onchange = _this$props4.onchange,
           dragChange = _this$props4.dragChange,
           set = _this$props4.set;
       var prevValue = this.state.prevValue;
-      top = this.getTop(top, delta);
+      top = this.getTop(top);
       var value = this.getValueByTop(top);
 
-      if (prevValue !== value && callOnchange) {
-        prevValue = value;
-        onchange(set(value));
+      if (prevValue !== value) {
+        var items = (0, _jquery.default)(this.dom.current).find('.drag-input-item');
+        items.removeClass('active');
+        items.filter('.drag-input-item' + value).addClass('active');
+
+        if (callOnchange) {
+          prevValue = value;
+          onchange(set(value));
+        }
       }
 
       this.setState({
@@ -258,12 +261,12 @@ var RList = /*#__PURE__*/function (_Component) {
     value: function moveBy(delta, type) {
       var top = this.state.top;
       top -= Math.round(delta) * this.itemHeight;
-      this.setTop(top, 0, type);
+      this.setTop(top, type);
     }
   }, {
     key: "moveTo",
     value: function moveTo(value, type) {
-      this.setTop(this.getTopByValue(value), 0, type);
+      this.setTop(this.getTopByValue(value), type);
     }
   }, {
     key: "getTopByValue",
@@ -282,7 +285,13 @@ var RList = /*#__PURE__*/function (_Component) {
       var _this$props5 = this.props,
           length = _this$props5.length,
           get = _this$props5.get,
-          align = _this$props5.align;
+          align = _this$props5.align,
+          height = _this$props5.height,
+          size = _this$props5.size;
+      this.itemHeight = height / size;
+      this.offset = Math.floor(size / 2);
+      this.minTop = this.getMinTop();
+      this.maxTop = this.getMaxTop();
       var alignMap = {
         start: 'flex-start',
         end: 'flex-end',
@@ -295,7 +304,7 @@ var RList = /*#__PURE__*/function (_Component) {
         value = value === undefined ? i : value;
         items.push( /*#__PURE__*/_react.default.createElement("div", {
           key: i,
-          className: "drag-input-item",
+          className: 'drag-input-item drag-input-item' + i,
           style: {
             height: this.itemHeight,
             justifyContent: alignMap[align]
@@ -304,10 +313,6 @@ var RList = /*#__PURE__*/function (_Component) {
       }
 
       this.items = items;
-      this.setState({
-        length: length,
-        get: get.toString()
-      });
     }
   }, {
     key: "keyDown",
@@ -339,7 +344,7 @@ var RList = /*#__PURE__*/function (_Component) {
       if (this.arrow) {
         var top = this.state.top;
         var dragChange = this.props.dragChange;
-        this.setTop(Math.round(top / this.itemHeight) * this.itemHeight, 0, !dragChange);
+        this.setTop(Math.round(top / this.itemHeight) * this.itemHeight, !dragChange);
         this.arrow = false;
       }
     }
@@ -354,6 +359,7 @@ var RList = /*#__PURE__*/function (_Component) {
           width = _this$props7.width;
 
       var props = _defineProperty({
+        ref: this.dom,
         className: 'drag-input',
         style: {
           height: height,

@@ -5,9 +5,9 @@
   user-select:none;
   border-radius:3px;
   overflow: hidden;
-  font-size:12px;
+  font-size:16px;
   display: flex;
-  color:#888;
+  color:#ccc;
   font-family:inherit;
 }
 .drag-input-item{
@@ -20,6 +20,13 @@
   white-space: nowrap;
   text-overflow: ellipsis;
   box-sizing: border-box;
+  transition:.2s;
+  font-size:80%;
+}
+.drag-input-item.active{
+  font-size:100%;
+  color:#333;
+  transition:.2s;
 }
 .drag-input-list{
   position: absolute;

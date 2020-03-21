@@ -1,42 +1,39 @@
-import React, { Component } from 'react';
+import React, { Component,createRef } from 'react';
 import './index.css';
 import $ from 'jquery'
 
 export default class RList extends Component {
   constructor(props) {
     super(props);
-    var {height,size,value} = this.props;
-    this.itemHeight = height / size;
-    this.offset = Math.floor(size / 2);
+    var {get,height,size,value,length} = this.props;
     this.getItems();
+    this.dom = createRef();
     this.state = {
       top: this.getTop(this.getTopByValue(value)),
-      getItems:this.getItems.bind(this)
+      getItems:this.getItems.bind(this),
+      length,
+      get:get.toString(),
     };
     this.time = 0;
     this.date = new Date();
-    this.touch = this.isMobile();
+    this.touch = 'ontouchstart' in document.documentElement;
+    if(this.touch){this.getClient = function(e){return {x: e.changedTouches[0].clientX,y:e.changedTouches[0].clientY }}}
+    else{this.getClient = function(e){return {x:e.clientX,y:e.clientY}}}
   }
   static getDerivedStateFromProps(props,state){
     if(props.length !== state.length || props.get.toString() !== state.get){state.getItems()}
     return null;
   }
-  isMobile(){return 'ontouchstart' in document.documentElement}
   eventHandler(selector, event, action,type = 'bind'){
     var me = { mousedown: "touchstart", mousemove: "touchmove", mouseup: "touchend" };
-    event = this.isMobile() ? me[event] : event;
+    event = this.touch ? me[event] : event;
     var element = typeof selector === "string"? 
     (selector === "window"?$(window):$(selector)):
     selector; 
     element.unbind(event, action); 
     if(type === 'bind'){element.bind(event, action)}
   }
-  getClient(e){
-    var mobile = this.isMobile();
-    return mobile?
-    {x: e.changedTouches[0].clientX,y:e.changedTouches[0].clientY }:
-    {x:e.clientX,y:e.clientY}
-  }
+  
   mouseDown(e){
     clearInterval(this.interval);
     this.deltaPX = 0;
@@ -55,41 +52,40 @@ export default class RList extends Component {
       this.deltaPX = y - this.y;
       this.y = y;
     }
-    this.setTop(this.so.top - (this.so.y - this.getClient(e).y),1,dragChange)
+    this.setTop(this.so.top - (this.so.y - this.getClient(e).y),dragChange)
   }
   accel(){
     var {top} = this.state;
     var {dragChange} = this.props;
     clearInterval(this.interval);
-    this.speed =  this.deltaPX / this.deltaT * 20 * 0.4;
-    if(Math.abs(this.speed) < 1){
-      this.setTop(Math.round(top / this.itemHeight) * this.itemHeight,0,!dragChange)
+    this.speed = this.deltaT?this.deltaPX / this.deltaT * 20 * 0.4:false;
+    if(!this.speed || Math.abs(this.speed) < 1){
+      this.setTop(Math.round(top / this.itemHeight) * this.itemHeight,!dragChange)
       return;
     }
-    var minTop = this.getMinTop(),maxTop = this.getMaxTop();
     this.interval = setInterval(()=>{
       var top = this.state.top; 
       top += this.speed;
       this.speed *= 0.98;
       //console.log(this.speed)
       if(Math.abs(this.speed) < 0.7){
-        this.setTop(Math.round(top / this.itemHeight) * this.itemHeight,0,!dragChange)
+        this.setTop(Math.round(top / this.itemHeight) * this.itemHeight,!dragChange)
         clearInterval(this.interval);
         return;
       }
-      if(top < minTop){
-        top = minTop;
-        this.setTop(top,0,!dragChange)
+      if(top < this.minTop){
+        top = this.minTop;
+        this.setTop(top,!dragChange)
         clearInterval(this.interval)
         return;
       }
-      if(top > maxTop){
-        top = maxTop;
-        this.setTop(top,0,!dragChange)
+      if(top > this.maxTop){
+        top = this.maxTop;
+        this.setTop(top,!dragChange)
         clearInterval(this.interval)
         return;
       }
-      this.setTop(top,0,dragChange)
+      this.setTop(top,dragChange)
     },20)
   }
   mouseUp(){
@@ -101,7 +97,7 @@ export default class RList extends Component {
     }
     else{
       var {top} = this.state;
-      this.setTop(Math.round(top / this.itemHeight) * this.itemHeight,0,!dragChange)
+      this.setTop(Math.round(top / this.itemHeight) * this.itemHeight,!dragChange)
     }
     
     
@@ -113,29 +109,33 @@ export default class RList extends Component {
   getMaxTop(offset = 0){
     return (this.offset + offset) * this.itemHeight;
   }
-  getTop(top,delta = 0){
-    var minTop = this.getMinTop(delta),maxTop = this.getMaxTop(delta);
-    if(top < minTop){top = minTop} else if(top > maxTop){top = maxTop}
+  getTop(top){
+    if(top < this.minTop){top = this.minTop} else if(top > this.maxTop){top = this.maxTop}
     return top;
   }
-  setTop(top,delta,callOnchange){
+  setTop(top,callOnchange){
     var {onchange,dragChange,set} = this.props;
     var {prevValue} = this.state;
-    top = this.getTop(top,delta);
+    top = this.getTop(top);
     var value = this.getValueByTop(top);
-    if(prevValue !== value && callOnchange){
-      prevValue = value;
-      onchange(set(value));
+    if(prevValue !== value){
+      var items = $(this.dom.current).find('.drag-input-item');
+      items.removeClass('active');
+      items.filter('.drag-input-item' + value).addClass('active');
+      if(callOnchange){
+        prevValue = value;
+        onchange(set(value));
+      }
     }
     this.setState({top,prevValue});
   }
   moveBy(delta,type){
     var {top} = this.state;
     top -= Math.round(delta) * this.itemHeight;
-    this.setTop(top,0,type)
+    this.setTop(top,type)
   }
   moveTo(value,type){
-    this.setTop(this.getTopByValue(value),0,type)
+    this.setTop(this.getTopByValue(value),type)
   }
   getTopByValue(value){
     return (this.offset - value) * this.itemHeight;
@@ -145,18 +145,21 @@ export default class RList extends Component {
     return Math.round(((this.itemHeight * this.offset) - top) / this.itemHeight);
   }
   getItems(){
-    var {length,get,align} = this.props;
+    var {length,get,align,height,size} = this.props;
+    this.itemHeight = height / size;
+    this.offset = Math.floor(size / 2);
+    this.minTop = this.getMinTop();
+    this.maxTop = this.getMaxTop();
     var alignMap = {start:'flex-start',end:'flex-end',center:'center'}
     var items = [];
     for(var i = 0; i <= length - 1; i++){
       let value = get(i);
       value = value === undefined?i:value;
       items.push(
-        <div key={i} className='drag-input-item' style={{height:this.itemHeight,justifyContent:alignMap[align]}}>{value}</div>
+        <div key={i} className={'drag-input-item drag-input-item' + i} style={{height:this.itemHeight,justifyContent:alignMap[align]}}>{value}</div>
       )
     }
     this.items = items;
-    this.setState({length,get:get.toString()})
   }  
   keyDown(e){
     var {length,dragChange} = this.props;
@@ -180,14 +183,16 @@ export default class RList extends Component {
     if(this.arrow){
       var {top} = this.state;
       var {dragChange} = this.props;
-      this.setTop(Math.round(top / this.itemHeight) * this.itemHeight,0,!dragChange)
+      this.setTop(Math.round(top / this.itemHeight) * this.itemHeight,!dragChange)
       this.arrow = false;
     }
   }
+  
   render() {
     var {top} = this.state;
-    var {height,width} = this.props;
+    var {height,width} = this.props; 
     var props = {
+      ref:this.dom,
       className:'drag-input',style:{height,width},tabIndex:0,
       onWheel:(e)=>this.moveBy(e.deltaY / 100,true),
       onKeyDown:this.keyDown.bind(this),
