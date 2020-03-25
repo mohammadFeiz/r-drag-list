@@ -145,18 +145,19 @@ export default class RList extends Component {
     return Math.round(((this.itemHeight * this.offset) - top) / this.itemHeight);
   }
   getItems(){
-    var {length,get,align,height,size} = this.props;
+    var {length,get,align,height,size,value} = this.props;
     this.itemHeight = height / size;
     this.offset = Math.floor(size / 2);
     this.minTop = this.getMinTop();
     this.maxTop = this.getMaxTop();
     var alignMap = {start:'flex-start',end:'flex-end',center:'center'}
     var items = [];
+
     for(var i = 0; i <= length - 1; i++){
-      let value = get(i);
-      value = value === undefined?i:value;
+      let val = get(i);
+      val = val === undefined?i:val;
       items.push(
-        <div key={i} className={'drag-input-item drag-input-item' + i} style={{height:this.itemHeight,justifyContent:alignMap[align]}}>{value}</div>
+        <div key={i} className={'drag-input-item drag-input-item' + i + (value === i?' active':'')} style={{height:this.itemHeight,justifyContent:alignMap[align]}}>{val}</div>
       )
     }
     this.items = items;
@@ -190,10 +191,10 @@ export default class RList extends Component {
   
   render() {
     var {top} = this.state;
-    var {height,width} = this.props; 
+    var {height,width,style,className,id} = this.props; 
     var props = {
-      ref:this.dom,
-      className:'drag-input',style:{height,width},tabIndex:0,
+      ref:this.dom,id,
+      className:`drag-input${className?' ' + className:''}`,style:$.extend({},{height,width},typeof style === 'function'?style(this.getValueByTop(top)):style),tabIndex:0,
       onWheel:(e)=>this.moveBy(e.deltaY / 100,true),
       onKeyDown:this.keyDown.bind(this),
       onKeyUp:this.keyUp.bind(this),

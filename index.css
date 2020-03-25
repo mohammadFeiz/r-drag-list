@@ -7,7 +7,7 @@
   overflow: hidden;
   font-size:16px;
   display: flex;
-  color:#ccc;
+  color:#ddd;
   font-family:inherit;
 }
 .drag-input-item{
@@ -22,31 +22,16 @@
   box-sizing: border-box;
   transition:.2s;
   font-size:80%;
+  opacity:.6;
+  
 }
 .drag-input-item.active{
   font-size:100%;
-  color:#333;
+  color:#222;
+  opacity:1;
   transition:.2s;
 }
 .drag-input-list{
   position: absolute;
   width:100%;
-}
-.drag-input:before{
-  content:'';
-  position:absolute;
-  height:1px;
-  top:calc(50%);
-  width:4px;
-  left:0;
-  background:#000;
-}
-.drag-input:after{
-  content:'';
-  position:absolute;
-  height:1px;
-  top:calc(50%);
-  width:4px;
-  right:0;
-  background:#000;
 }

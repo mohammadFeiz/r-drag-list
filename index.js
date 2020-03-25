@@ -287,7 +287,8 @@ var RList = /*#__PURE__*/function (_Component) {
           get = _this$props5.get,
           align = _this$props5.align,
           height = _this$props5.height,
-          size = _this$props5.size;
+          size = _this$props5.size,
+          value = _this$props5.value;
       this.itemHeight = height / size;
       this.offset = Math.floor(size / 2);
       this.minTop = this.getMinTop();
@@ -300,16 +301,16 @@ var RList = /*#__PURE__*/function (_Component) {
       var items = [];
 
       for (var i = 0; i <= length - 1; i++) {
-        var value = get(i);
-        value = value === undefined ? i : value;
+        var val = get(i);
+        val = val === undefined ? i : val;
         items.push( /*#__PURE__*/_react.default.createElement("div", {
           key: i,
-          className: 'drag-input-item drag-input-item' + i,
+          className: 'drag-input-item drag-input-item' + i + (value === i ? ' active' : ''),
           style: {
             height: this.itemHeight,
             justifyContent: alignMap[align]
           }
-        }, value));
+        }, val));
       }
 
       this.items = items;
@@ -356,15 +357,19 @@ var RList = /*#__PURE__*/function (_Component) {
       var top = this.state.top;
       var _this$props7 = this.props,
           height = _this$props7.height,
-          width = _this$props7.width;
+          width = _this$props7.width,
+          style = _this$props7.style,
+          className = _this$props7.className,
+          id = _this$props7.id;
 
       var props = _defineProperty({
         ref: this.dom,
-        className: 'drag-input',
-        style: {
+        id: id,
+        className: "drag-input".concat(className ? ' ' + className : ''),
+        style: _jquery.default.extend({}, {
           height: height,
           width: width
-        },
+        }, typeof style === 'function' ? style(this.getValueByTop(top)) : style),
         tabIndex: 0,
         onWheel: function onWheel(e) {
           return _this3.moveBy(e.deltaY / 100, true);
